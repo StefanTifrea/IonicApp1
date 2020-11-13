@@ -3,5 +3,5 @@ export interface SongProps{
     name: string;
     artist: string;
     time: number;
-    releaseDate: Date;
+    releaseDate: string;
 }

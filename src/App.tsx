@@ -23,20 +23,24 @@ import '@ionic/react/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 import { SongProvider } from './todo/SongProvider';
+import { AuthProvider, Login, PrivateRoute } from './auth';
 
 
 const App: React.FC = () => (
   <IonApp>
-    <SongProvider>
-      <IonReactRouter>
-        <IonRouterOutlet>
-          <Route path="/songs" component={SongList} exact={true} />
-          <Route path="/song" component={SongEdit} exact={true}/>
-          <Route path="/song/:id" component={SongEdit} exact={true}/>
+    <IonReactRouter>
+      <IonRouterOutlet>
+        <AuthProvider>
+          <Route path="/login" component={Login} exact={true}/>
+          <SongProvider>
+            <PrivateRoute path="/songs" component={SongList} exact={true} />
+            <PrivateRoute path="/song" component={SongEdit} exact={true}/>
+            <PrivateRoute path="/song/:id" component={SongEdit} exact={true}/>   
+          </SongProvider>
           <Route exact path="/" render={() => <Redirect to="/songs" />} />
-        </IonRouterOutlet>
-      </IonReactRouter>
-    </SongProvider>
+        </AuthProvider>
+      </IonRouterOutlet>
+    </IonReactRouter>
   </IonApp>
 );
 

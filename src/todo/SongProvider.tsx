@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useReducer } from 'react';
+import React, { useCallback, useEffect, useReducer, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { getLogger } from '../core';
 import { SongProps } from './SongProps';
 import { createSong, getSongs, updateSong, newWebSocket } from './SongApi';
+import {AuthContext} from '../auth'
 
 const log = getLogger('SongProvider');
 
@@ -48,9 +49,6 @@ const reducer: (state: SongsState, action: ActionProps) => SongsState =
       case SAVE_SONG_SUCCEEDED:
         const songs = [...(state.songs || [])];
         const song = payload.song;
-        log("payl " + payload);
-        log("Cursed song" + song);
-        log(songs);
         const index = songs.findIndex(it => it.id === song.id);
         if (index === -1) {
           songs.splice(0, 0, song);
@@ -65,18 +63,19 @@ const reducer: (state: SongsState, action: ActionProps) => SongsState =
     }
   };
 
-  export const SongContext = React.createContext<SongsState>(initialState);
+export const SongContext = React.createContext<SongsState>(initialState);
 
 interface SongProviderProps {
   children: PropTypes.ReactNodeLike,
 }
 
 export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
+  const { token } = useContext(AuthContext);
   const [state, dispatch] = useReducer(reducer, initialState);
   const { songs, fetching, fetchingError, saving, savingError } = state;
-  useEffect(getSongsEffect, []);
-  useEffect(wsEffect, []);
-  const saveSong = useCallback<SaveSongFn>(saveSongCallback, []);
+  useEffect(getSongsEffect, [token]);
+  useEffect(wsEffect, [token]);
+  const saveSong = useCallback<SaveSongFn>(saveSongCallback, [token]);
   const value = { songs, fetching, fetchingError, saving, savingError, saveSong };
   log('returns');
   return (
@@ -93,10 +92,13 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     }
 
     async function fetchSongs() {
+      if (!token?.trim()) {
+        return;
+      }
       try {
         log('fetchSongs started');
         dispatch({ type: FETCH_SONGS_STARTED });
-        const songs = await getSongs();
+        const songs = await getSongs(token);
         log('fetchSongs succeeded');
         if (!canceled) {
           dispatch({ type: FETCH_SONGS_SUCCEEDED, payload: { songs } });
@@ -112,7 +114,7 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     try {
       log('saveSong started');
       dispatch({ type: SAVE_SONG_STARTED });
-      const savedSong = await (song.id ? updateSong(song) : createSong(song));
+      const savedSong = await (song.id ? updateSong(token, song) : createSong(token, song));
       log('saveSong succeeded');
       dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song: savedSong } });
     } catch (error) {
@@ -124,20 +126,23 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
   function wsEffect() {
     let canceled = false;
     log('wsEffect - connecting');
-    const closeWebSocket = newWebSocket(message => {
-      if (canceled) {
-        return;
-      }
-      const { event, payload: { song }} = message;
-      log(`ws message, song ${event}`);
-      if (event === 'created' || event === 'updated') {
-        dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song } });
-      }
-    });
+    let closeWebSocket: () => void;
+    if (token?.trim()) {
+      closeWebSocket = newWebSocket(token, message => {
+        if (canceled) {
+          return;
+        }
+        const { type, payload: song } = message;
+        log(`ws message, song ${type}`);
+        if (type === 'created' || type === 'updated') {
+          dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song } });
+        }
+      });
+    }
     return () => {
       log('wsEffect - disconnecting');
       canceled = true;
-      closeWebSocket();
+      closeWebSocket?.();
     }
   }
 };

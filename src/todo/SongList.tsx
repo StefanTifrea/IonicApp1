@@ -33,7 +33,7 @@ const SongList : React.FC<RouteComponentProps> = ({history}) =>{
             {songs && (
             <IonList>
               {songs.map(({ id, name, artist, time, releaseDate}) =>
-                <Song key={id} id={id} name={name} artist={artist} time={time} releaseDate={releaseDate} onEdit={id => history.push(`/song/${id}`)} />)}
+                <Song key={name + " " + artist} id={id} name={name} artist={artist} time={time} releaseDate={releaseDate} onEdit={id => history.push(`/song/${id}`)} />)}
             </IonList>
             )}
             {fetchingError && (

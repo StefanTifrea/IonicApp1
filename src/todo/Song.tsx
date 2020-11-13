@@ -24,7 +24,7 @@ const Song : React.FC<SongPropsExt> = ({ id, name, artist, time, releaseDate, on
     
     return (
         <IonItem onClick={() => onEdit(id)}>
-            <IonLabel>{artist} - {name} : {time} --- {formatDate(releaseDate)}</IonLabel>
+            <IonLabel>{artist} - {name} : {time} --- {releaseDate}</IonLabel>
         </IonItem>
     );
 };

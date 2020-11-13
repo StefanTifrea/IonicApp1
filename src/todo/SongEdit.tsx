@@ -26,7 +26,7 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
     const [name, setName] = useState('');
     const [artist, setArtist] = useState('');
     const [time, setTime] = useState(0);
-    const [releaseDate, setReleaseDate] = useState(new Date(2000-1-1));
+    const [releaseDate, setReleaseDate] = useState("2000-1-1");
     const [song, setSong] = useState<SongProps>();
     useEffect(() => {
       log('useEffect');
@@ -61,7 +61,7 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
           <IonInput value={name} onIonChange={e => setName(e.detail.value || '')} />
           <IonInput value={artist} onIonChange={e => setArtist(e.detail.value || '')} />
           <IonInput value={time} onIonChange={e => setTime(parseInt(e.detail.value || '0', 10))} />
-          <IonInput value={releaseDate.toString()} onIonChange={e => setReleaseDate(new Date(e.detail.value || ''))} />
+          <IonInput value={releaseDate.toString()} onIonChange={e => setReleaseDate(e.detail.value || '')} />
           <IonLoading isOpen={saving} />
           {savingError && (
             <div>{savingError.message || 'Failed to save song'}</div>
