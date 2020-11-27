@@ -23,6 +23,7 @@ interface SongEditProps extends RouteComponentProps <{
 
 const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
     const { songs, saving, savingError, saveSong } = useContext(SongContext);
+    log(songs?.length);
     const [name, setName] = useState('');
     const [artist, setArtist] = useState('');
     const [time, setTime] = useState(0);
@@ -31,8 +32,10 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
     useEffect(() => {
       log('useEffect');
       const routeId = match.params.id || '';
-      const song = songs?.find(it => it.id === routeId);
+      log("this is routeId " + routeId);
+      const song = songs?.find(it => it._id === routeId);
       setSong(song);
+      log(song?.name);
       if (song) {
         setName(song.name);
         setArtist(song.artist);

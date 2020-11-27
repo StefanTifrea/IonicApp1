@@ -24,7 +24,7 @@ import '@ionic/react/css/display.css';
 import './theme/variables.css';
 import { SongProvider } from './todo/SongProvider';
 import { AuthProvider, Login, PrivateRoute } from './auth';
-
+import {Logout} from './auth/Logout'
 
 const App: React.FC = () => (
   <IonApp>
@@ -32,6 +32,7 @@ const App: React.FC = () => (
       <IonRouterOutlet>
         <AuthProvider>
           <Route path="/login" component={Login} exact={true}/>
+          <Route path="/logout" component={Logout} exact={true}/>
           <SongProvider>
             <PrivateRoute path="/songs" component={SongList} exact={true} />
             <PrivateRoute path="/song" component={SongEdit} exact={true}/>

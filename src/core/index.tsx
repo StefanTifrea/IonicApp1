@@ -1,3 +1,5 @@
+import { Plugins } from '@capacitor/core';
+
 export const baseUrl = 'localhost:3000';
 
 export const getLogger: (tag: string) => (...args: any) => void =
@@ -28,10 +30,53 @@ export const config = {
   }
 };
 
-export const authConfig = (token?: string) => ({
+export const authConfig = (token?: string) => {
+  log('token final ', token);
+  return ({
   
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`
-  }
-});
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  });
+} 
+
+export function getStoredToken(){
+  const { Storage } = Plugins;
+
+  const res = Storage.get({key: 'token'});
+
+  return res;
+}
+
+export const storageObject = () => 
+  (async () => {
+    const { Storage } = Plugins;
+
+    // Saving ({ key: string, value: string }) => Promise<void>
+    await Storage.set({
+      key: 'user',
+      value: JSON.stringify({
+        username: 'a', password: 'a',
+      })
+    });
+
+    // Loading value by key ({ key: string }) => Promise<{ value: string | null }>
+    const res = await Storage.get({ key: 'user' });
+    if (res.value) {
+      console.log('User found', JSON.parse(res.value));
+    } else {
+      console.log('User not found');
+    }
+
+    // Loading keys () => Promise<{ keys: string[] }>
+    const { keys } = await Storage.keys();
+    console.log('Keys found', keys);
+
+    // Removing value by key, ({ key: string }) => Promise<void>
+    await Storage.remove({ key: 'user' });
+    console.log('Keys found after remove', await Storage.keys());
+
+    // Clear storage () => Promise<void>
+    await Storage.clear();
+})

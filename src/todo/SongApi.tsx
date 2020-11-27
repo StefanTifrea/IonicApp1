@@ -4,6 +4,8 @@ import { SongProps } from './SongProps';
 
 const songUrl = `http://${baseUrl}/api/song`;
 
+const log = getLogger('ws');
+
 export const getSongs: (token: string) => Promise<SongProps[]> = token => {
   return withLogs(axios.get(songUrl, authConfig(token)), 'getSongs');
 }
@@ -13,7 +15,8 @@ export const createSong: (token: string, song: SongProps) => Promise<SongProps[]
 }
 
 export const updateSong: (token: string, song: SongProps) => Promise<SongProps[]> = (token, song) => {
-  return withLogs(axios.put(`${songUrl}/${song.id}`, song, authConfig(token)), 'updateSong');
+  log("got the token " + token);
+  return withLogs(axios.put(`${songUrl}/${song._id}`, song, authConfig(token)), 'updateSong');
 }
 
 interface MessageData {
@@ -21,7 +24,7 @@ interface MessageData {
   payload: SongProps;
 }
 
-const log = getLogger('ws');
+
 
 export const newWebSocket = (token: string, onMessage: (data: MessageData) => void) => {
   const ws = new WebSocket(`ws://${baseUrl}`)

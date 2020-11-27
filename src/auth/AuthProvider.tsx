@@ -2,16 +2,22 @@ import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { getLogger } from '../core';
 import { login as loginApi } from './AuthApi';
+import { Plugins } from '@capacitor/core';
+import { clearToken } from '../core/LocalStorage'
+import { clear } from 'console';
+
 
 const log = getLogger('AuthProvider');
 
 type LoginFn = (username?: string, password?: string) => void;
+type LogoutFn = () => void;
 
 export interface AuthState {
   authenticationError: Error | null;
   isAuthenticated: boolean;
   isAuthenticating: boolean;
   login?: LoginFn;
+  logout?: LogoutFn;
   pendingAuthentication?: boolean;
   username?: string;
   password?: string;
@@ -36,14 +42,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>(initialState);
   const { isAuthenticated, isAuthenticating, authenticationError, pendingAuthentication, token } = state;
   const login = useCallback<LoginFn>(loginCallback, []);
+  const logout = useCallback<LogoutFn>(logOutCallBack, []);
   useEffect(authenticationEffect, [pendingAuthentication]);
-  const value = { isAuthenticated, login, isAuthenticating, authenticationError, token };
+  const value = { isAuthenticated, login, logout, isAuthenticating, authenticationError, token };
+  const {Storage} = Plugins;
+
+  if(!state.isAuthenticated){
+    checkIfLocalLoggin();
+  }
+
+
   log('render');
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+
+  function checkIfLocalLoggin(){
+    Storage.get({key: 'token'}).then(({value}) => {
+      if(value){
+        setState(
+          {token: JSON.parse(value), isAuthenticated: true, isAuthenticating: false, pendingAuthentication: false, authenticationError: null
+          });
+      }
+    })
+  }
 
   function loginCallback(username?: string, password?: string): void {
     log('login');
@@ -53,6 +77,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       username,
       password
     });
+  }
+
+  function logOutCallBack() {
+    clearToken();
+    setState(initialState);
   }
 
   function authenticationEffect() {
@@ -75,10 +104,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         const { username, password } = state;
         const { token } = await loginApi(username, password);
+        Storage.set({key: 'token', value: JSON.stringify(token)});
         if (canceled) {
           return;
         }
         log('authenticate succeeded');
+        
         setState({
           ...state,
           token,

@@ -4,6 +4,8 @@ import { getLogger } from '../core';
 import { SongProps } from './SongProps';
 import { createSong, getSongs, updateSong, newWebSocket } from './SongApi';
 import {AuthContext} from '../auth'
+import { Plugins } from '@capacitor/core';
+
 
 const log = getLogger('SongProvider');
 
@@ -49,9 +51,10 @@ const reducer: (state: SongsState, action: ActionProps) => SongsState =
       case SAVE_SONG_SUCCEEDED:
         const songs = [...(state.songs || [])];
         const song = payload.song;
-        const index = songs.findIndex(it => it.id === song.id);
+        log("y" + song._id);
+        const index = songs.findIndex(it => it._id === song._id);
         if (index === -1) {
-          songs.splice(0, 0, song);
+          songs.splice(songs.length, 0, song);
         } else {
           songs[index] = song;
         }
@@ -92,7 +95,8 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     }
 
     async function fetchSongs() {
-      if (!token?.trim()) {
+      log('t t ', token);
+      if(!token?.trim()){
         return;
       }
       try {
@@ -107,20 +111,24 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
         log('fetchSongs failed');
         dispatch({ type: FETCH_SONGS_FAILED, payload: { error } });
       }
+        
     }
   }
 
   async function saveSongCallback(song: SongProps) {
-    try {
-      log('saveSong started');
-      dispatch({ type: SAVE_SONG_STARTED });
-      const savedSong = await (song.id ? updateSong(token, song) : createSong(token, song));
-      log('saveSong succeeded');
-      dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song: savedSong } });
-    } catch (error) {
-      log('saveSong failed');
-      dispatch({ type: SAVE_SONG_FAILED, payload: { error } });
-    }
+
+      try {
+        log('saveSong started');
+        dispatch({ type: SAVE_SONG_STARTED });
+        //const savedSong = await (song._id ? updateSong(token, song) : createSong(token, song));
+        log('saveSong succeeded');
+        // dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song: savedSong } });
+      } catch (error) {
+        log('saveSong failed');
+        dispatch({ type: SAVE_SONG_FAILED, payload: { error } });
+      }
+  
+
   }
 
   function wsEffect() {
@@ -146,4 +154,3 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     }
   }
 };
-

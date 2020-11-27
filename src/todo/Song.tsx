@@ -3,9 +3,9 @@ import { IonItem, IonLabel } from '@ionic/react';
 import {SongProps} from './SongProps';
 
 interface SongPropsExt extends SongProps{
-    onEdit: (id?: string) => void;
+    onEdit: (_id?: string) => void;
 }
-
+/*
 const formatDate = (date: Date) => {
     var d = new Date(date);
     var month = '' + (d.getMonth() + 1);
@@ -19,11 +19,11 @@ const formatDate = (date: Date) => {
 
     return [year, month, day].join('-');
 }
-
-const Song : React.FC<SongPropsExt> = ({ id, name, artist, time, releaseDate, onEdit }) => {
+*/
+const Song : React.FC<SongPropsExt> = ({ _id, name, artist, time, releaseDate, onEdit }) => {
     
     return (
-        <IonItem onClick={() => onEdit(id)}>
+        <IonItem onClick={() => onEdit(_id)}>
             <IonLabel>{artist} - {name} : {time} --- {releaseDate}</IonLabel>
         </IonItem>
     );
