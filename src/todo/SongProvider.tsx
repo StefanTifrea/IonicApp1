@@ -1,15 +1,16 @@
-import React, { useCallback, useEffect, useReducer, useContext } from 'react';
+import React, { useCallback, useEffect, useReducer, useContext, useState } from 'react';
 import PropTypes from 'prop-types';
 import { getLogger } from '../core';
 import { SongProps } from './SongProps';
-import { createSong, getSongs, updateSong, newWebSocket } from './SongApi';
+import { createSong, getSongs, getSongsPage, updateSong, newWebSocket } from './SongApi';
 import {AuthContext} from '../auth'
-import { Plugins } from '@capacitor/core';
+import { addLocalItems, getLocalItems } from '../core/LocalStorage'
 
 
 const log = getLogger('SongProvider');
 
 type SaveSongFn = (song: SongProps) => Promise<any>;
+type GetSongsCallBackFn = (page: number, pageSize: number, endScrolling: boolean) => Promise<any>;
 
 export interface SongsState {
     songs?: SongProps[],
@@ -18,6 +19,7 @@ export interface SongsState {
     saving: boolean,
     savingError?: Error | null,
     saveSong?: SaveSongFn,
+    getSongsCallBack?: GetSongsCallBackFn
 }
 
 interface ActionProps{
@@ -36,6 +38,7 @@ const FETCH_SONGS_FAILED = 'FETCH_SONGS_FAILED';
 const SAVE_SONG_STARTED = 'SAVE_SONG_STARTED';
 const SAVE_SONG_SUCCEEDED = 'SAVE_SONG_SUCCEEDED';
 const SAVE_SONG_FAILED = 'SAVE_SONG_FAILED';
+const CLEAR_SONGS = 'CLEAR_SONGS';
 
 const reducer: (state: SongsState, action: ActionProps) => SongsState =
   (state, { type, payload }) => {
@@ -61,6 +64,8 @@ const reducer: (state: SongsState, action: ActionProps) => SongsState =
         return { ...state,  songs, saving: false };
       case SAVE_SONG_FAILED:
         return { ...state, savingError: payload.error, saving: false };
+      case CLEAR_SONGS:
+        return { ...state, songs: []}
       default:
         return state;
     }
@@ -76,16 +81,35 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
   const { token } = useContext(AuthContext);
   const [state, dispatch] = useReducer(reducer, initialState);
   const { songs, fetching, fetchingError, saving, savingError } = state;
-  useEffect(getSongsEffect, [token]);
-  useEffect(wsEffect, [token]);
+
+  const [page, setPage] = useState<number>(0);
+
+  const [pageSize, setPageSize] = useState<number>(0);
+
+  const [endScrolling, setEndScrolling] = useState<boolean>(false);
+
+  const getSongsCallBack = useCallback<GetSongsCallBackFn>(setPageDetails, [token]);
+
   const saveSong = useCallback<SaveSongFn>(saveSongCallback, [token]);
-  const value = { songs, fetching, fetchingError, saving, savingError, saveSong };
+
+  const value = { songs, fetching, fetchingError, saving, savingError, saveSong, getSongsCallBack };
+
+  useEffect(getSongsEffect, [token, page, pageSize, endScrolling]);
+
+  useEffect(wsEffect, [token]);
+
   log('returns');
   return (
     <SongContext.Provider value={value}>
       {children}
     </SongContext.Provider>
   );
+  
+  async function setPageDetails(page: number, pageSize: number, ending: boolean) {
+    setPage(page);
+    setPageSize(pageSize);
+    setEndScrolling(ending);
+  }
 
   function getSongsEffect() {
     let canceled = false;
@@ -95,21 +119,83 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     }
 
     async function fetchSongs() {
+      log('ended', endScrolling)
+      if(endScrolling){
+        return;
+      }
+
       log('t t ', token);
       if(!token?.trim()){
         return;
       }
+
+      let result = []
       try {
         log('fetchSongs started');
         dispatch({ type: FETCH_SONGS_STARTED });
-        const songs = await getSongs(token);
-        log('fetchSongs succeeded');
-        if (!canceled) {
-          dispatch({ type: FETCH_SONGS_SUCCEEDED, payload: { songs } });
+        //const songs = await getSongs(token);
+        //const items = [songs, await getSongsPage(token, page, pageSize)];
+        
+
+        const items = await getSongsPage(token, page, pageSize);
+
+        log('items', items);
+        log('songs??', songs);
+        if(songs){
+          if(songs.length >= pageSize){
+            for(let i = 0;i<songs.length;i++){
+              result.push(songs[i]);
+            }
+          }
+          
         }
+        for(let i = 0;i<items.length;i++){
+          let n = true;
+          for(let j = 0; j< result.length; j++){
+            if(items[i]._id == result[j]._id){
+              n = false;
+              result[j] = items[i];
+            }
+            
+          }
+            
+          if(n){
+            result.push(items[i]);
+          }
+        }
+        
+
+        log('params', page, pageSize);
+        log('gotten', result.length);
+        log('fetchSongs succeeded');
+
+        addLocalItems(result);
+
+        if (!canceled) {
+          dispatch({ type: FETCH_SONGS_SUCCEEDED, payload: { songs: result } });
+        }
+
+        if(items.length < pageSize){
+          log('scrolling disabled');
+            setEndScrolling(true);
+            //setPage(page + 1);
+        }
+        
+        
       } catch (error) {
-        log('fetchSongs failed');
-        dispatch({ type: FETCH_SONGS_FAILED, payload: { error } });
+
+        let locals = await getLocalItems();
+        if(locals.value){
+          log('fetchSongs local')
+          result = JSON.parse(locals.value);
+          dispatch({ type: FETCH_SONGS_SUCCEEDED, payload: { songs: result } });
+        }
+        else{
+          log('fetchSongs failed');
+          dispatch({ type: FETCH_SONGS_FAILED, payload: { error } });
+        }
+
+        
       }
         
     }
@@ -120,9 +206,9 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
       try {
         log('saveSong started');
         dispatch({ type: SAVE_SONG_STARTED });
-        //const savedSong = await (song._id ? updateSong(token, song) : createSong(token, song));
-        log('saveSong succeeded');
-        // dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song: savedSong } });
+        const savedSong = await (song._id ? updateSong(token, song) : createSong(token, song));
+        log('saveSong succeeded' + savedSong);
+        //dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song: savedSong } });
       } catch (error) {
         log('saveSong failed');
         dispatch({ type: SAVE_SONG_FAILED, payload: { error } });
@@ -149,6 +235,7 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     }
     return () => {
       log('wsEffect - disconnecting');
+      dispatch({type: 'CLEAR_SONGS'});
       canceled = true;
       closeWebSocket?.();
     }

@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 import { getLogger } from '../core';
 import { login as loginApi } from './AuthApi';
 import { Plugins } from '@capacitor/core';
-import { clearToken } from '../core/LocalStorage'
-import { clear } from 'console';
+import { clearToken, checkLoginToken } from '../core/LocalStorage'
 
 
 const log = getLogger('AuthProvider');

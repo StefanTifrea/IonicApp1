@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { RouteComponentProps } from 'react-router';
 import {
   IonContent,
@@ -6,19 +6,63 @@ import {
   IonFabButton,
   IonHeader,
   IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
   IonList, IonLoading,
   IonPage,
+  IonSearchbar,
   IonTitle,
-  IonToolbar
+  IonToolbar,
+  useIonViewWillEnter
 } from '@ionic/react';
-import { add, logOut } from 'ionicons/icons';
+import { add, logOut, wifi, warning } from 'ionicons/icons';
 import Song from './Song';
 import { getLogger } from '../core';
 import { SongContext } from './SongProvider';
+import { SongProps } from './SongProps';
+import { useNetwork } from '../network/useNetwork';
+import { logDOM } from '@testing-library/react';
 const log = getLogger('SongList');
 
 const SongList : React.FC<RouteComponentProps> = ({history}) =>{
-    const {songs, fetching, fetchingError} = useContext(SongContext);
+    const {songs, fetching, fetchingError, getSongsCallBack } = useContext(SongContext);
+    const [searchSong, setSearchSong] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [endScrolling, setEndScrolling] = useState<boolean>(false);
+
+    const {networkStatus} = useNetwork();
+
+    const pageSize = 7;
+
+    useEffect(() => {
+      fetchData()
+    }, [page, endScrolling])
+
+    useIonViewWillEnter(async () => {
+      fetchData();
+    });
+
+    async function fetchData(reset?: boolean) {
+        log('It\'s called', page, pageSize, endScrolling)
+        if(!getSongsCallBack){
+          return;
+        }
+        await getSongsCallBack(page, pageSize, endScrolling);
+    }
+    
+    async function searchNext($event: CustomEvent<void>) {
+      if(songs){
+        if(page * pageSize > songs.length){
+          setEndScrolling(true);
+        }
+      }
+      log('goes next', page);
+      setPage(page + 1);
+      ($event.target as HTMLIonInfiniteScrollElement).complete();
+      
+      
+    }
+
     log('render');
     return (
         <IonPage>
@@ -27,11 +71,17 @@ const SongList : React.FC<RouteComponentProps> = ({history}) =>{
               <IonTitle>My App</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent>
+          <IonContent fullscreen>
+            <IonSearchbar
+              value={searchSong} debounce = {1000} 
+              onIonChange={e => setSearchSong(e.detail.value!)}>
+            </IonSearchbar>
             <IonLoading isOpen={fetching} message="Fetching songs" />
             {songs && (
             <IonList>
-              {songs.map(({ _id, name, artist, time, releaseDate}) =>
+              {songs
+              .filter(song => song.name.toLowerCase().indexOf(searchSong.toLowerCase()) >= 0 || song.artist.toLowerCase().indexOf(searchSong.toLowerCase()) >= 0)
+              .map(({ _id, name, artist, time, releaseDate}) =>
                 <Song key={_id} _id={_id} name={name} artist={artist} time={time} releaseDate={releaseDate} onEdit={id => history.push(`/song/${id}`)} />
               )}
             </IonList>
@@ -49,6 +99,14 @@ const SongList : React.FC<RouteComponentProps> = ({history}) =>{
                 <IonIcon icon={logOut} />
               </IonFabButton>
             </IonFab>
+            <IonFab vertical="top" horizontal="center" slot="fixed">
+              <IonFabButton disabled={true} color="primary">
+                <IonIcon icon={networkStatus.connected ? wifi : warning}></IonIcon>
+              </IonFabButton>
+            </IonFab>
+            <IonInfiniteScroll threshold="100px" disabled={endScrolling} onIonInfinite={(e: CustomEvent<void>) => searchNext(e)}>
+              <IonInfiniteScrollContent loadingText="Loading more songs..."></IonInfiniteScrollContent>
+            </IonInfiniteScroll>
         </IonContent>
         </IonPage>
       );

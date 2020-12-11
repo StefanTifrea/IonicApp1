@@ -2,10 +2,9 @@ import React, { useContext } from 'react';
 import PropTypes from 'prop-types';
 import { Redirect, Route } from 'react-router-dom';
 import { AuthContext, AuthState } from './AuthProvider';
-import { getLogger, getStoredToken } from '../core';
+import { getLogger } from '../core';
 
 const log = getLogger('Login');
-var localToken = false;
 
 export interface PrivateRouteProps {
   component: PropTypes.ReactNodeLike;

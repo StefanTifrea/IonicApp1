@@ -10,6 +10,10 @@ export const getSongs: (token: string) => Promise<SongProps[]> = token => {
   return withLogs(axios.get(songUrl, authConfig(token)), 'getSongs');
 }
 
+export const getSongsPage: (token: string, page: number, pageSize: number) => Promise<SongProps[]> = (token, page, pageSize) => {
+  return withLogs(axios.get(`${songUrl}/pagination?page=${page}&pageSize=${pageSize}`, authConfig(token)), 'getSongsPage')
+}
+
 export const createSong: (token: string, song: SongProps) => Promise<SongProps[]> = (token, song) => {
   return withLogs(axios.post(songUrl, song, authConfig(token)), 'createSong');
 }

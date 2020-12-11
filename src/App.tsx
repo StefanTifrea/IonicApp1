@@ -25,8 +25,11 @@ import './theme/variables.css';
 import { SongProvider } from './todo/SongProvider';
 import { AuthProvider, Login, PrivateRoute } from './auth';
 import {Logout} from './auth/Logout'
+import { useNetwork } from './network/useNetwork';
 
 const App: React.FC = () => (
+  
+
   <IonApp>
     <IonReactRouter>
       <IonRouterOutlet>
