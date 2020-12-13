@@ -14,6 +14,7 @@ import { getLogger } from '../core';
 import { SongContext } from './SongProvider';
 import { RouteComponentProps } from 'react-router';
 import { SongProps } from './SongProps';
+import {Photo} from './usePhotoGalllery';
 
 const log = getLogger('SongEdit');
 
@@ -28,6 +29,7 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
     const [artist, setArtist] = useState('');
     const [time, setTime] = useState(0);
     const [releaseDate, setReleaseDate] = useState("2000-1-1");
+    const [coverArt, setCoverArt] = useState(new Photo('',''));
     const [song, setSong] = useState<SongProps>();
     useEffect(() => {
       log('useEffect');
@@ -41,10 +43,11 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
         setArtist(song.artist);
         setTime(song.time);
         setReleaseDate(song.releaseDate);
+        setCoverArt(song.coverArt);
       }
     }, [match.params.id, songs]);
     const handleSave = () => {
-      const editedSong = song ? { ...song, name, artist, time, releaseDate } : { name, artist, time, releaseDate };
+      const editedSong = song ? { ...song, name, artist, time, releaseDate, coverArt } : { name, artist, time, releaseDate, coverArt };
       saveSong && saveSong(editedSong).then(() => history.goBack());
     };
     log('render');

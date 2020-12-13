@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { getLogger } from '../core';
 import { login as loginApi } from './AuthApi';
 import { Plugins } from '@capacitor/core';
-import { clearToken, checkLoginToken } from '../core/LocalStorage'
+import { clearToken, checkLoginToken, clearOfflineOperations, clearLocalItems } from '../core/LocalStorage'
 
 
 const log = getLogger('AuthProvider');
@@ -80,6 +80,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   function logOutCallBack() {
     clearToken();
+    clearLocalItems();
+    clearOfflineOperations();
     setState(initialState);
   }
 

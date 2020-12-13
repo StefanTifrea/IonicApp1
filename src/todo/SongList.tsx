@@ -22,6 +22,7 @@ import { SongContext } from './SongProvider';
 import { SongProps } from './SongProps';
 import { useNetwork } from '../network/useNetwork';
 import { logDOM } from '@testing-library/react';
+
 const log = getLogger('SongList');
 
 const SongList : React.FC<RouteComponentProps> = ({history}) =>{
@@ -43,7 +44,7 @@ const SongList : React.FC<RouteComponentProps> = ({history}) =>{
     });
 
     async function fetchData(reset?: boolean) {
-        log('It\'s called', page, pageSize, endScrolling)
+        log('It\'s called ', page, pageSize, endScrolling)
         if(!getSongsCallBack){
           return;
         }
@@ -56,7 +57,7 @@ const SongList : React.FC<RouteComponentProps> = ({history}) =>{
           setEndScrolling(true);
         }
       }
-      log('goes next', page);
+      log('next page ', page);
       setPage(page + 1);
       ($event.target as HTMLIonInfiniteScrollElement).complete();
       
@@ -81,8 +82,8 @@ const SongList : React.FC<RouteComponentProps> = ({history}) =>{
             <IonList>
               {songs
               .filter(song => song.name.toLowerCase().indexOf(searchSong.toLowerCase()) >= 0 || song.artist.toLowerCase().indexOf(searchSong.toLowerCase()) >= 0)
-              .map(({ _id, name, artist, time, releaseDate}) =>
-                <Song key={_id} _id={_id} name={name} artist={artist} time={time} releaseDate={releaseDate} onEdit={id => history.push(`/song/${id}`)} />
+              .map(({ _id, name, artist, time, releaseDate, coverArt}) =>
+                <Song key={_id} _id={_id} name={name} artist={artist} time={time} releaseDate={releaseDate} coverArt={coverArt} onEdit={id => history.push(`/song/${id}`)} />
               )}
             </IonList>
             )}
