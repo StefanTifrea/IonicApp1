@@ -8,13 +8,22 @@ import {
   IonLoading,
   IonPage,
   IonTitle,
-  IonToolbar
+  IonToolbar,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonActionSheet,
+  IonImg
 } from '@ionic/react';
 import { getLogger } from '../core';
 import { SongContext } from './SongProvider';
 import { RouteComponentProps } from 'react-router';
 import { SongProps } from './SongProps';
-import {Photo} from './usePhotoGalllery';
+import {Photo, usePhotoGallery} from './usePhotoGalllery';
+import { camera, close, trash } from 'ionicons/icons';
+import { useFilesystem } from '@ionic/react-hooks/filesystem';
+import { FilesystemDirectory } from '@capacitor/core';
+
 
 const log = getLogger('SongEdit');
 
@@ -24,13 +33,26 @@ interface SongEditProps extends RouteComponentProps <{
 
 const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
     const { songs, saving, savingError, saveSong } = useContext(SongContext);
-    log(songs?.length);
+
+    const {photos, takePhoto, deletePhoto} = usePhotoGallery();
+    const [photoToDelete, setPhotoToDelete] = useState<string>();
+    const { deleteFile, readFile, writeFile } = useFilesystem();
+
     const [name, setName] = useState('');
     const [artist, setArtist] = useState('');
     const [time, setTime] = useState(0);
     const [releaseDate, setReleaseDate] = useState("2000-1-1");
-    const [coverArt, setCoverArt] = useState(new Photo('',''));
+    const [coverArt, setCoverArt] = useState('');
     const [song, setSong] = useState<SongProps>();
+
+    async function setPhoto() {
+
+      const photo = await takePhoto();
+
+      log('image', photo);
+      setCoverArt(photo);
+    }
+
     useEffect(() => {
       log('useEffect');
       const routeId = match.params.id || '';
@@ -43,6 +65,7 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
         setArtist(song.artist);
         setTime(song.time);
         setReleaseDate(song.releaseDate);
+        log('covert art', song.coverArt);
         setCoverArt(song.coverArt);
       }
     }, [match.params.id, songs]);
@@ -68,11 +91,38 @@ const SongEdit: React.FC<SongEditProps> = ({ history, match }) => {
           <IonInput value={artist} onIonChange={e => setArtist(e.detail.value || '')} />
           <IonInput value={time} onIonChange={e => setTime(parseInt(e.detail.value || '0', 10))} />
           <IonInput value={releaseDate.toString()} onIonChange={e => setReleaseDate(e.detail.value || '')} />
+        
+          <IonImg class="view-cover" onClick = {() => setPhotoToDelete(coverArt)} src = {coverArt}></IonImg>
           <IonLoading isOpen={saving} />
           {savingError && (
             <div>{savingError.message || 'Failed to save song'}</div>
           )}
         </IonContent>
+        <IonFab vertical="bottom" horizontal="center" slot="fixed">
+          <IonFabButton onClick={() => { setPhoto();
+             }}>
+            <IonIcon icon={camera}/>
+          </IonFabButton>
+        </IonFab>
+        <IonActionSheet
+          isOpen={!!photoToDelete}
+          buttons={[{
+            text: 'Delete',
+            role: 'destructive',
+            icon: trash,
+            handler: () => {
+              if (photoToDelete) {
+                //deletePhoto(photoToDelete);
+                setPhotoToDelete(undefined);
+              }
+            }
+          }, {
+            text: 'Cancel',
+            icon: close,
+            role: 'cancel'
+          }]}
+          onDidDismiss={() => setPhotoToDelete(undefined)}
+        />
       </IonPage>
     );
   };

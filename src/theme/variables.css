@@ -147,6 +147,29 @@ http://ionicframework.com/docs/theming/ */
     --ion-color-light-tint: #383a3e;
   }
 
+  .main-item > div{
+    display: inline-block;
+  }
+
+  .main-item > div > p{
+    font-size: 20px;
+  }
+
+  .captions{
+    vertical-align: top;
+  }
+
+  .cover{
+    width: 200px;
+    height: 200px;
+    margin-right: 50px;
+  }
+
+  .view-cover{
+    width: 400px;
+    height: 400px;
+  }
+
   /*
    * iOS Dark Theme
    * -------------------------------------------

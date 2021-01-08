@@ -1,8 +1,8 @@
 import React from 'react';
 import { IonItem, IonLabel } from '@ionic/react';
-import {SongProps} from './SongProps';
+import { SongProps } from './SongProps';
 
-interface SongPropsExt extends SongProps{
+interface SongPropsExt extends SongProps {
     onEdit: (_id?: string) => void;
 }
 /*
@@ -20,11 +20,23 @@ const formatDate = (date: Date) => {
     return [year, month, day].join('-');
 }
 */
-const Song : React.FC<SongPropsExt> = ({ _id, name, artist, time, releaseDate, onEdit }) => {
-    
+const Song: React.FC<SongPropsExt> = ({ _id, name, artist, time, releaseDate, coverArt, onEdit }) => {
+
     return (
         <IonItem onClick={() => onEdit(_id)}>
-            <IonLabel><p>{artist} - {name}</p> <p>Running time:  {time} </p> <p>Release Date: {releaseDate}</p></IonLabel>
+            <IonLabel>
+                <div className="main-item">
+
+                    <div>
+                        <p><img className="cover" src={coverArt}></img></p>
+                    </div>
+                    <div className="captions">
+                        <p>{artist} - {name}</p> <p>Running time:  {time} </p> <p>Release Date: {releaseDate}</p>
+                    </div>
+
+
+                </div>
+            </IonLabel>
         </IonItem>
     );
 };

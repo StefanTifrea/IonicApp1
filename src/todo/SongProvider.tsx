@@ -2,18 +2,17 @@ import React, { useCallback, useEffect, useReducer, useContext, useState } from 
 import PropTypes from 'prop-types';
 import { getLogger } from '../core';
 import { SongProps } from './SongProps';
-import { createSong, getSongs, getSongsPage, updateSong, newWebSocket } from './SongApi';
+import { createSong, getSongsPage, updateSong, newWebSocket } from './SongApi';
 import {AuthContext} from '../auth'
 import { addLocalItems, getLocalItems, addItemToLocal, getOfflineOperations, addOperationToLocal, clearOfflineOperations } from '../core/LocalStorage'
 import { OperationProps } from './OperationProps';
 import { useNetwork } from '../network/useNetwork';
-import Song from './Song';
 
 
 const log = getLogger('SongProvider');
 
 type SaveSongFn = (song: SongProps) => Promise<any>;
-type GetSongsCallBackFn = (page: number, pageSize: number, endScrolling: boolean) => Promise<any>;
+type GetSongsCallBackFn = (page: number, pageSize: number, endScrolling: boolean, filter: string) => Promise<any>;
 
 export interface SongsState {
     songs?: SongProps[],
@@ -22,7 +21,7 @@ export interface SongsState {
     saving: boolean,
     savingError?: Error | null,
     saveSong?: SaveSongFn,
-    getSongsCallBack?: GetSongsCallBackFn
+    getSongsCallBack?: GetSongsCallBackFn,
 }
 
 interface ActionProps{
@@ -87,11 +86,15 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { songs, fetching, fetchingError, saving, savingError } = state;
 
-  const [page, setPage] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
 
   const [pageSize, setPageSize] = useState<number>(0);
 
   const [endScrolling, setEndScrolling] = useState<boolean>(false);
+
+  const [filter, setFilter] = useState<string>("");
+
+  const [resetView, setResetView] = useState<boolean>(false);
 
   const getSongsCallBack = useCallback<GetSongsCallBackFn>(setPageDetails, [token]);
 
@@ -99,7 +102,11 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
 
   const value = { songs, fetching, fetchingError, saving, savingError, saveSong, getSongsCallBack };
 
-  useEffect(getSongsEffect, [token, page, pageSize, endScrolling]);
+  useEffect(clearOldSongsEffect, [filter]);
+
+  useEffect(getSongsEffect, [token, page, pageSize, filter]);
+
+  
 
   useEffect(wsEffect, [token]);
 
@@ -112,10 +119,21 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
     </SongContext.Provider>
   );
   
-  async function setPageDetails(page: number, pageSize: number, ending: boolean) {
+  async function setPageDetails(page: number, pageSize: number, ending: boolean, filter: string) {
     setPage(page);
     setPageSize(pageSize);
     setEndScrolling(ending);
+    setFilter(filter);
+  }
+
+  function clearOldSongsEffect(){
+
+    reset();
+
+    async function reset() {
+      log("CALLED");
+     setResetView(true);
+    }
   }
 
   function localSongsEffect(){
@@ -167,11 +185,19 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
         log('fetchSongs started');
         dispatch({ type: FETCH_SONGS_STARTED });
 
-        const items = await getSongsPage(token, page, pageSize);
+        log('Page', page);
+        const items = await getSongsPage(token, page, pageSize, filter);
+
+        
+        if(page > 0){
+          setResetView(false);
+        }
+        
 
         log('Page of items', items);
         log('Existing songs', songs);
-        if(songs){
+        log('Reset view', resetView);
+        if(songs && !resetView){
           if(songs.length >= pageSize){
             for(let i = 0;i<songs.length;i++){
               result.push(songs[i]);
@@ -179,6 +205,12 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
           }
           
         }
+
+        /*
+        if(page > 0){
+          setResetView(false);
+        }
+          */
         for(let i = 0;i<items.length;i++){
           let n = true;
           for(let j = 0; j< result.length; j++){
@@ -193,6 +225,8 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
             result.push(items[i]);
           }
         }
+
+        
         
         log('fetchSongs succeeded');
 
@@ -237,14 +271,24 @@ export const SongProvider: React.FC<SongProviderProps> = ({ children }) => {
         //dispatch({ type: SAVE_SONG_SUCCEEDED, payload: { song: savedSong } });
       } catch (error) {
         if(song){
+          alert('You are offline! The operation will be commited once you are connected again.');
           if(song._id){
             log('update for later', song.name);
-            //addOperationToLocal(new OperationProps('update', song));
+            const oldItems = (await getLocalItems()).value;
+            if(oldItems){
+              const newItems = JSON.parse(oldItems);
+              for(let i=0;i<newItems.length;i++){
+                if(newItems[i]._id === song._id){
+                  newItems[i] = song;
+                }
+              }
+              addLocalItems(newItems);
+            }
             addOperationToLocal(new OperationProps('update', song));
           }
           else{
             log('save for later', song.name);
-            
+    
             addItemToLocal(song);
             addOperationToLocal(new OperationProps('add', song));
 

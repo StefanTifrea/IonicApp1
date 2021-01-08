@@ -6,5 +6,5 @@ export interface SongProps{
     artist: string;
     time: number;
     releaseDate: string;
-    coverArt: Photo;
+    coverArt: string;
 }
